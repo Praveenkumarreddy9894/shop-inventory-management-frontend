@@ -1,7 +1,7 @@
 import axios from 'axios';
-
+// 'https://shop-inventory-management-backend.onrender.com/api'
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: `${process.env.NODE_ENV ?? 'https://shop-inventory-management-backend.onrender.com/api'}`,
   headers: { 'Content-Type': 'application/json' },
 });
 

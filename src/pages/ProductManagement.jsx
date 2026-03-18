@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { productsApi } from '../services/api';
 import { PRODUCT_CATEGORIES } from '../utils/constants';
+import { useI18n } from '../context/I18nContext';
 
 export default function ProductManagement() {
   const [searchParams] = useSearchParams();
@@ -15,6 +16,7 @@ export default function ProductManagement() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name: '', sku: '', category: '', price: '', costPrice: '', quantity: '0', lowStockThreshold: '5', unit: 'pcs' });
+  const { t } = useI18n();
 
   const fetchProducts = () => {
     setLoading(true);
@@ -99,7 +101,7 @@ export default function ProductManagement() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <h1 style={{ margin: 0 }}>Product Management</h1>
+        <h1 style={{ margin: 0 }}>{t('products_title')}</h1>
         <button type="button" className="btn btn-primary" onClick={openAdd}>Add Product</button>
       </div>
 
@@ -203,33 +205,57 @@ export default function ProductManagement() {
       </div>
 
       {modal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }} onClick={() => setModal(null)}>
-          <div className="card" style={{ maxWidth: 440, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+          <div className="card" style={{ maxWidth: 760, width: '100%' }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginTop: 0 }}>{modal === 'add' ? 'Add Product' : 'Edit Product'}</h2>
             <form onSubmit={handleSubmit}>
-              {['name', 'sku', 'category', 'price', 'costPrice', 'quantity', 'lowStockThreshold', 'unit'].map((key) => (
-                <div key={key} className="form-group">
-                  <label>{key.replace(/([A-Z])/g, ' $1').trim()}</label>
-                  {key === 'category' ? (
-                    <select
-                      value={form[key]}
-                      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                    >
-                      {PRODUCT_CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      value={form[key]}
-                      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                      type={key.includes('Price') || key === 'quantity' || key === 'lowStockThreshold' ? 'number' : 'text'}
-                      step={key.includes('Price') ? 0.01 : undefined}
-                      min={key === 'quantity' || key === 'lowStockThreshold' ? 0 : undefined}
-                    />
-                  )}
-                </div>
-              ))}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '0.75rem 0.9rem',
+                }}
+              >
+                {['name', 'sku', 'category', 'price', 'costPrice', 'quantity', 'lowStockThreshold', 'unit'].map((key) => (
+                  <div
+                    key={key}
+                    className="form-group"
+                    style={{
+                      gridColumn: key === 'name' ? '1 / -1' : undefined,
+                      marginBottom: 0,
+                    }}
+                  >
+                    <label>{key.replace(/([A-Z])/g, ' $1').trim()}</label>
+                    {key === 'category' ? (
+                      <select
+                        value={form[key]}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                      >
+                        {PRODUCT_CATEGORIES.map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    ) : key === 'unit' ? (
+                      <select
+                        value={form[key]}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                      >
+                        {['pcs', 'kg', 'g', 'ltr', 'ml', 'box', 'pack'].map((u) => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={form[key]}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                        type={key.includes('Price') || key === 'quantity' || key === 'lowStockThreshold' ? 'number' : 'text'}
+                        step={key.includes('Price') ? 0.01 : undefined}
+                        min={key === 'quantity' || key === 'lowStockThreshold' ? 0 : undefined}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
                 <button type="submit" className="btn btn-primary">Save</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { purchasesApi } from '../services/api';
+import { useI18n } from '../context/I18nContext';
 
 const ACCEPT = '.pdf,.jpg,.jpeg,.png';
 const MAX_MB = 5;
@@ -10,6 +11,7 @@ export default function PurchaseBillUpload() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     purchasesApi.list({ limit: 50 }).then((res) => setPurchases(res.data));
@@ -70,7 +72,7 @@ export default function PurchaseBillUpload() {
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Upload Purchase Bill</h1>
+      <h1 style={{ marginTop: 0 }}>{t('purchaseUpload_title')}</h1>
       <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
         Select a purchase entry and upload the bill (PDF, JPG or PNG, max {MAX_MB}MB).
       </p>

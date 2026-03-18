@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { salesApi } from '../services/api';
+import { useI18n } from '../context/I18nContext';
 
 export default function SalesReports() {
   const [from, setFrom] = useState('');
@@ -8,6 +9,7 @@ export default function SalesReports() {
   const [list, setList] = useState({ data: [], total: 0, page: 1, totalPages: 0 });
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('list');
+  const { t } = useI18n();
 
   const fetchReport = () => {
     setLoading(true);
@@ -43,7 +45,7 @@ export default function SalesReports() {
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Sales Reports</h1>
+      <h1 style={{ marginTop: 0 }}>{t('sales_title')}</h1>
       <div className="card">
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />

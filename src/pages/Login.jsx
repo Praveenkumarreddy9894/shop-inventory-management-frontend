@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useI18n } from '../context/I18nContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -9,6 +10,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +30,7 @@ export default function Login() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
       <div className="card" style={{ width: '100%', maxWidth: 400 }}>
         <h1 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Shop Inventory</h1>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Sign in to continue</p>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{t('login_title')}</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Email</label>

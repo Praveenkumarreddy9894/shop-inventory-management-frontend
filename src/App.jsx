@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ProductManagement from './pages/ProductManagement';
 import BillingPage from './pages/BillingPage';
+import ProductBillingPage from './pages/ProductBillingPage';
 import SalesReports from './pages/SalesReports';
 import PurchaseEntry from './pages/PurchaseEntry';
 import PurchaseBillUpload from './pages/PurchaseBillUpload';
@@ -41,6 +42,14 @@ export default function App() {
         element={
           <PrivateRoute>
             <BillingPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/product-billing"
+        element={
+          <PrivateRoute>
+            <ProductBillingPage />
           </PrivateRoute>
         }
       />

@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { productsApi, billingApi } from '../services/api';
+import { useI18n } from '../context/I18nContext';
 
 export default function BillingPage() {
   const [customerName, setCustomerName] = useState('');
   const [products, setProducts] = useState([]);
   const [productSearch, setProductSearch] = useState('');
+  const [activeProductIndex, setActiveProductIndex] = useState(-1);
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -12,7 +14,9 @@ export default function BillingPage() {
   const [toast, setToast] = useState('');
   const [recentBills, setRecentBills] = useState([]);
   const [recentLoading, setRecentLoading] = useState(false);
+  const { t } = useI18n();
   const printRef = useRef(null);
+  const smartSearchListRef = useRef(null);
 
   useEffect(() => {
     setLoading(true);
@@ -32,6 +36,13 @@ export default function BillingPage() {
     ? products.filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(productSearch.toLowerCase())))
     : products;
 
+  const visibleProducts = productSearch.trim() ? filteredProducts.slice(0, 8) : [];
+
+  useEffect(() => {
+    // reset highlight when query changes
+    setActiveProductIndex(visibleProducts.length > 0 ? 0 : -1);
+  }, [productSearch, visibleProducts.length]);
+
   const addToCart = (product) => {
     const existing = cart.find((c) => c.productId === product._id);
     if (existing) {
@@ -40,6 +51,47 @@ export default function BillingPage() {
       setCart([...cart, { productId: product._id, name: product.name, price: product.price, quantity: 1 }]);
     }
   };
+
+  const addVisibleProductAtIndex = (index) => {
+    const p = visibleProducts[index];
+    if (!p) return;
+    addToCart(p);
+    setProductSearch('');
+    setActiveProductIndex(-1);
+  };
+
+  const handleSmartSearchKeyDown = (e) => {
+    if (!productSearch.trim()) return;
+    if (loading) return;
+    if (visibleProducts.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveProductIndex((i) => {
+        const next = Math.min(visibleProducts.length - 1, (i < 0 ? 0 : i) + 1);
+        return next;
+      });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveProductIndex((i) => Math.max(0, (i < 0 ? 0 : i) - 1));
+    } else if (e.key === 'Enter') {
+      // Enter should add the highlighted product, not submit the bill form
+      e.preventDefault();
+      addVisibleProductAtIndex(activeProductIndex >= 0 ? activeProductIndex : 0);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setProductSearch('');
+      setActiveProductIndex(-1);
+    }
+  };
+
+  useEffect(() => {
+    if (!smartSearchListRef.current) return;
+    if (activeProductIndex < 0) return;
+    const el = smartSearchListRef.current.querySelector(`[data-idx="${activeProductIndex}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: 'nearest' });
+  }, [activeProductIndex]);
 
   const updateQty = (productId, delta) => {
     setCart(cart.map((c) => {
@@ -100,9 +152,8 @@ export default function BillingPage() {
       )}
       <div className="billing-header no-print">
         <div>
-          <p className="billing-kicker">Billing</p>
-          <h1 className="billing-title">Create Bill</h1>
-          <p className="billing-subtitle">Welcome, create a new invoice for your customer.</p>
+          <p className="billing-kicker">{t('billing_title')}</p>
+          <h1 className="billing-title">{t('billing_title')}</h1>
         </div> 
       </div>
 
@@ -143,23 +194,33 @@ export default function BillingPage() {
                     placeholder="Search product name or SKU"
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
+                    onKeyDown={handleSmartSearchKeyDown}
+                    aria-expanded={productSearch.trim() ? 'true' : 'false'}
+                    aria-controls="billing-smart-search-list"
                   />
                 </div>
                 {productSearch.trim() && (
-                  <div className="billing-smart-search-results">
+                  <div
+                    id="billing-smart-search-list"
+                    className="billing-smart-search-results"
+                    ref={smartSearchListRef}
+                    role="listbox"
+                  >
                     {loading && <p className="billing-smart-search-empty">Searching products…</p>}
                     {!loading && filteredProducts.length === 0 && (
                       <p className="billing-smart-search-empty">No products found.</p>
                     )}
                     {!loading &&
-                      filteredProducts.slice(0, 8).map((p) => (
+                      visibleProducts.map((p, idx) => (
                         <button
                           key={p._id}
                           type="button"
-                          className="billing-smart-search-item"
+                          className={`billing-smart-search-item ${idx === activeProductIndex ? 'is-active' : ''}`}
+                          data-idx={idx}
+                          role="option"
+                          aria-selected={idx === activeProductIndex}
                           onClick={() => {
-                            addToCart(p);
-                            setProductSearch('');
+                            addVisibleProductAtIndex(idx);
                           }}
                         >
                           <span className="billing-smart-search-name">{p.name}</span>

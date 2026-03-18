@@ -9,6 +9,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { dashboardApi, salesApi } from '../services/api';
+import { useI18n } from '../context/I18nContext';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -110,6 +111,8 @@ export default function Dashboard() {
   const [weeklySeries, setWeeklySeries] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
 
+  const { t } = useI18n();
+
   useEffect(() => {
     dashboardApi.getStats()
       .then((res) => setStats(res.data))
@@ -209,12 +212,12 @@ export default function Dashboard() {
       });
   }, []);
 
-  if (loading) return <div>Loading dashboard...</div>;
-  if (!stats) return <div>Failed to load dashboard.</div>;
+  if (loading) return <div>Loading...</div>;
+  if (!stats) return <div>Failed to load.</div>;
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Dashboard</h1>
+      <h1 style={{ marginTop: 0 }}>{t('dashboard_title')}</h1>
       <div className="grid grid-4" style={{ marginBottom: '2rem' }}>
         <div className="card">
           <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Total Products</div>

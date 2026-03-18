@@ -1,8 +1,9 @@
 services:
   - type: web
-    name: shop-inventory-frontend 
+    name: shop-inventory-frontend
+    rootDir: .
     buildCommand: npm run build
-    staticPublishPath: ./dist
+    staticPublishPath: dist
     routes:
       - type: rewrite
         source: /*

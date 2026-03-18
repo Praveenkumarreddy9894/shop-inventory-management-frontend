@@ -9,10 +9,23 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [lastBill, setLastBill] = useState(null);
+  const [toast, setToast] = useState('');
+  const [recentBills, setRecentBills] = useState([]);
+  const [recentLoading, setRecentLoading] = useState(false);
   const printRef = useRef(null);
 
   useEffect(() => {
-    productsApi.list({ limit: 200 }).then((res) => setProducts(res.data.data || []));
+    setLoading(true);
+    productsApi
+      .list({ limit: 200 })
+      .then((res) => setProducts(res.data.data || []))
+      .finally(() => setLoading(false));
+
+    setRecentLoading(true);
+    billingApi
+      .report({ page: 1, limit: 5 })
+      .then((res) => setRecentBills(res.data.data || []))
+      .finally(() => setRecentLoading(false));
   }, []);
 
   const filteredProducts = productSearch.trim()
@@ -55,8 +68,11 @@ export default function BillingPage() {
         items: cart.map((c) => ({ productId: c.productId, quantity: c.quantity })),
       });
       setLastBill(res.data.bill);
+      setRecentBills((prev) => [res.data.bill, ...prev].slice(0, 5));
       setCustomerName('');
       setCart([]);
+      setToast('Billing created');
+      setTimeout(() => setToast(''), 3000);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to create bill');
     } finally {
@@ -68,89 +84,259 @@ export default function BillingPage() {
     window.print();
   };
 
+  const handlePrintExistingBill = (bill) => {
+    setLastBill(bill);
+    setTimeout(() => {
+      window.print();
+    }, 0);
+  };
+
   return (
-    <div>
-      <h1 style={{ marginTop: 0 }}>Billing</h1>
-      <div className="grid billing-grid">
-        <div className="card">
-          <h2 style={{ marginTop: 0, fontSize: '1.1rem' }}>Products</h2>
-          <div className="form-group no-print">
-            <input
-              type="search"
-              placeholder="Search product name or SKU..."
-              value={productSearch}
-              onChange={(e) => setProductSearch(e.target.value)}
-              style={{ maxWidth: 320 }}
-            />
-          </div>
-          {loading ? <p>Loading...</p> : (
-            <table>
-              <thead><tr><th>Name</th><th>Price</th><th>Stock</th><th>Add</th></tr></thead>
-              <tbody>
-                {filteredProducts.map((p) => (
-                  <tr key={p._id}>
-                    <td>{p.name}</td>
-                    <td>₹{Number(p.price).toFixed(2)}</td>
-                    <td>{p.quantity}</td>
-                    <td><button type="button" className="btn btn-primary" onClick={() => addToCart(p)}>Add</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+    <div className="billing-page">
+      {toast && (
+        <div className="toast toast-success no-print">
+          {toast}
         </div>
-        <div className="card">
-          <h2 style={{ marginTop: 0, fontSize: '1.1rem' }}>Current Bill</h2>
-          <form onSubmit={handleCreateBill}>
-            <div className="form-group">
-              <label>Customer Name</label>
-              <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Customer name" required />
+      )}
+      <div className="billing-header no-print">
+        <div>
+          <p className="billing-kicker">Billing</p>
+          <h1 className="billing-title">Create Bill</h1>
+          <p className="billing-subtitle">Welcome, create a new invoice for your customer.</p>
+        </div> 
+      </div>
+
+      <div className="billing-content">
+        <div className="card billing-invoice-card">
+          <div className="billing-invoice-header">
+            <div>
+              <h2>Create Invoice</h2>
             </div>
-            {cart.length > 0 ? (
-              <>
-                <table>
-                  <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th></th></tr></thead>
-                  <tbody>
-                    {cart.map((c) => (
-                      <tr key={c.productId}>
-                        <td>{c.name}</td>
-                        <td>
-                          <button type="button" onClick={() => updateQty(c.productId, -1)}>−</button>
-                          <span style={{ margin: '0 0.5rem' }}>{c.quantity}</span>
-                          <button type="button" onClick={() => updateQty(c.productId, 1)}>+</button>
-                        </td>
-                        <td>₹{(c.price * c.quantity).toFixed(2)}</td>
-                        <td><button type="button" className="btn btn-ghost" onClick={() => removeFromCart(c.productId)}>Remove</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
-                <p>Tax (18%): ₹{taxAmount.toFixed(2)}</p>
-                <p style={{ fontWeight: 700 }}>Total: ₹{total.toFixed(2)}</p>
-                <button type="submit" className="btn btn-primary" disabled={submitting} style={{ width: '100%', marginTop: '1rem' }}>{submitting ? 'Creating...' : 'Create Bill'}</button>
-              </>
-            ) : (
-              <p style={{ color: 'var(--text-muted)' }}>Add products from the list.</p>
+          </div>
+
+          <form onSubmit={handleCreateBill}>
+            <div className="billing-two-column">
+              <div className="form-group">
+                <label>Invoice Name</label>
+                <input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Customer name"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Bill To</label>
+                <input placeholder="Customer email or phone (optional)" />
+              </div>
+            </div>
+
+            <div className="billing-items-section">
+              <div className="billing-items-header">
+                <span>Items</span>
+              </div>
+
+              <div className="billing-smart-search no-print">
+                <div className="billing-smart-search-input">
+                  <input
+                    type="search"
+                    placeholder="Search product name or SKU"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                  />
+                </div>
+                {productSearch.trim() && (
+                  <div className="billing-smart-search-results">
+                    {loading && <p className="billing-smart-search-empty">Searching products…</p>}
+                    {!loading && filteredProducts.length === 0 && (
+                      <p className="billing-smart-search-empty">No products found.</p>
+                    )}
+                    {!loading &&
+                      filteredProducts.slice(0, 8).map((p) => (
+                        <button
+                          key={p._id}
+                          type="button"
+                          className="billing-smart-search-item"
+                          onClick={() => {
+                            addToCart(p);
+                            setProductSearch('');
+                          }}
+                        >
+                          <span className="billing-smart-search-name">{p.name}</span>
+                          <span className="billing-smart-search-meta">
+                            {p.sku && <span className="billing-smart-search-sku">{p.sku}</span>}
+                            <span className="billing-smart-search-price">
+                              ₹{Number(p.price).toFixed(2)}
+                            </span>
+                            <span className="billing-smart-search-stock">
+                              Stock: {p.quantity}
+                            </span>
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+              {cart.length > 0 ? (
+                <div className="billing-items-table">
+                  <div className="billing-items-row billing-items-row--head">
+                    <div>Description</div>
+                    <div>Quantity</div>
+                    <div>Price</div>
+                    <div />
+                  </div>
+                  {cart.map((c) => (
+                    <div key={c.productId} className="billing-items-row">
+                      <div className="billing-item-name">{c.name}</div>
+                      <div className="billing-item-qty">
+                        <button type="button" onClick={() => updateQty(c.productId, -1)}>
+                          −
+                        </button>
+                        <span>{c.quantity}</span>
+                        <button type="button" onClick={() => updateQty(c.productId, 1)}>
+                          +
+                        </button>
+                      </div>
+                      <div className="billing-item-price">
+                        ₹{(c.price * c.quantity).toFixed(2)}
+                      </div>
+                      <div className="billing-item-remove">
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => removeFromCart(c.productId)}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="billing-empty-items">
+                  Use the smart product search above to add items to this invoice.
+                </p>
+              )}
+            </div>
+
+            {cart.length > 0 && (
+              <div className="billing-footer">
+                <div className="billing-summary">
+                  <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
+                  <p>Tax (18%): ₹{taxAmount.toFixed(2)}</p>
+                  <p className="billing-summary-total">Total: ₹{total.toFixed(2)}</p>
+                </div>
+                <div className="billing-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      setCustomerName('');
+                      setCart([]);
+                    }}
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Creating...' : 'Add Item'}
+                  </button>
+                </div>
+              </div>
             )}
           </form>
+
           {lastBill && (
-            <div ref={printRef} className="card" style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg)', borderRadius: 8 }}>
+            <div
+              ref={printRef}
+              className="billing-print card billing-print-screen"
+              style={{ marginTop: '1.5rem' }}
+            >
               <h3 style={{ marginTop: 0 }}>Bill {lastBill.billNumber}</h3>
-              <p><strong>Customer:</strong> {lastBill.customerName}</p>
+              <p>
+                <strong>Customer:</strong> {lastBill.customerName}
+              </p>
+              <p>
+                <strong>Date &amp; time:</strong>{' '}
+                {new Date(
+                  lastBill.createdAt || lastBill.created_at || Date.now(),
+                ).toLocaleString()}
+              </p>
               <table>
-                <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {(lastBill.items || []).map((item, i) => (
-                    <tr key={i}><td>{item.name}</td><td>{item.quantity}</td><td>₹{Number(item.price).toFixed(2)}</td><td>₹{Number(item.total).toFixed(2)}</td></tr>
+                    <tr key={i}>
+                      <td>{item.name}</td>
+                      <td>{item.quantity}</td>
+                      <td>₹{Number(item.price).toFixed(2)}</td>
+                      <td>₹{Number(item.total).toFixed(2)}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
-              <p><strong>Subtotal:</strong> ₹{Number(lastBill.subtotal).toFixed(2)} | <strong>Tax:</strong> ₹{Number(lastBill.taxAmount).toFixed(2)} | <strong>Total:</strong> ₹{Number(lastBill.total).toFixed(2)}</p>
+              <p>
+                <strong>Subtotal:</strong> ₹{Number(lastBill.subtotal).toFixed(2)} |{' '}
+                <strong>Tax:</strong> ₹{Number(lastBill.taxAmount).toFixed(2)} |{' '}
+                <strong>Total:</strong> ₹{Number(lastBill.total).toFixed(2)}
+              </p>
               <div className="no-print" style={{ marginTop: '0.75rem' }}>
-                <button type="button" className="btn btn-primary" onClick={handlePrint}>Print / Download PDF</button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handlePrint}
+                >
+                  Print / Download PDF
+                </button>
               </div>
             </div>
+          )}
+        </div>
+
+        <div className="card billing-recent-card no-print">
+          <h2>Recent Bills</h2>
+          {recentLoading ? (
+            <p>Loading...</p>
+          ) : recentBills.length === 0 ? (
+            <p className="billing-empty-items">No recent bills found.</p>
+          ) : (
+            <ul className="billing-recent-list">
+              {recentBills.map((bill) => (
+                <li key={bill._id} className="billing-recent-item">
+                  <div className="billing-recent-main">
+                    <div className="billing-recent-title">
+                      {bill.billNumber}{' '}
+                      <span className="billing-recent-customer">{bill.customerName}</span>
+                    </div>
+                    <div className="billing-recent-meta">
+                      <span>
+                        Total: ₹{Number(bill.total).toFixed(2)}
+                      </span>
+                      <span>
+                        {new Date(bill.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary billing-recent-print-btn"
+                    onClick={() => handlePrintExistingBill(bill)}
+                  >
+                    Print
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>

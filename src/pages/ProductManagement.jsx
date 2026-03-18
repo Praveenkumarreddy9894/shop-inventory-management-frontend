@@ -10,6 +10,8 @@ export default function ProductManagement() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [lowStock, setLowStock] = useState(searchParams.get('lowStock') === 'true');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortDir, setSortDir] = useState('desc');
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name: '', sku: '', category: '', price: '', costPrice: '', quantity: '0', lowStockThreshold: '5', unit: 'pcs' });
@@ -17,14 +19,22 @@ export default function ProductManagement() {
   const fetchProducts = () => {
     setLoading(true);
     productsApi
-      .list({ page, limit: 10, search: search || undefined, category: category || undefined, lowStock: lowStock || undefined })
+      .list({
+        page,
+        limit: 10,
+        search: search || undefined,
+        category: category || undefined,
+        lowStock: lowStock || undefined,
+        sortBy,
+        sortDir,
+      })
       .then((res) => setData(res.data))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchProducts();
-  }, [page, search, category, lowStock]);
+  }, [page, search, category, lowStock, sortBy, sortDir]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -116,6 +126,32 @@ export default function ProductManagement() {
             <input type="checkbox" checked={lowStock} onChange={(e) => setLowStock(e.target.checked)} />
             Low stock only
           </label>
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setPage(1);
+              setSortBy(e.target.value);
+            }}
+            style={{ width: 160 }}
+          >
+            <option value="createdAt">Newest</option>
+            <option value="name">Name</option>
+            <option value="sku">SKU</option>
+            <option value="category">Category</option>
+            <option value="price">Price</option>
+            <option value="quantity">Stock</option>
+          </select>
+          <select
+            value={sortDir}
+            onChange={(e) => {
+              setPage(1);
+              setSortDir(e.target.value);
+            }}
+            style={{ width: 140 }}
+          >
+            <option value="desc">Desc</option>
+            <option value="asc">Asc</option>
+          </select>
           <button type="submit" className="btn btn-primary">Search</button>
         </form>
 

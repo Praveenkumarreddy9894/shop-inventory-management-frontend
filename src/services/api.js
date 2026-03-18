@@ -1,6 +1,6 @@
 import axios from 'axios'; 
 const api = axios.create({
-  baseURL: 'https://shop-inventory-management-backend.onrender.com/api',
+  baseURL: process.env.REACT_APP_API_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -46,6 +46,7 @@ export const salesApi = {
   report: (params) => api.get('/sales/report', { params }),
   dailyReport: () => api.get('/sales/daily-report'),
   exportCSV: (params) => api.get('/sales/export', { params, responseType: 'blob' }),
+  summary: () => api.get('/sales/summary'),
 };
 
 export const purchasesApi = {
